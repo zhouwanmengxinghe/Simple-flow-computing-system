@@ -12,18 +12,19 @@ public class MapOperator<T, R> implements Operator<T> {
 
     @Override
     public void execute() {
+        System.out.println("MapOperator starting execution...");
         while (true) {
-            T data = DataStream.getLatestData();
+            Object data = DataStream.getLatestData();
             if (data == null) {
-                System.out.println("No more data to process in MapOperator.");
+                System.out.println("MapOperator: No more data to process.");
                 break;
             }
 
             try {
-                R result = mapFunction.map(data);
+                R result = mapFunction.map((T) data);
                 if (result == null) {
                     System.err.println("MapFunction returned null for data: " + data);
-                    continue; // Skip this data if result is null
+                    continue;
                 }
 
                 System.out.println("MapOperator output: " + result);
@@ -31,9 +32,10 @@ public class MapOperator<T, R> implements Operator<T> {
             } catch (Exception e) {
                 System.err.println("Error processing data in MapOperator: " + data);
                 e.printStackTrace();
-                continue; // Skip this data if an error occurs
+                continue;
             }
         }
+        System.out.println("MapOperator finished execution.");
     }
 
     @Override

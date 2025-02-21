@@ -29,11 +29,13 @@ public class SourceOperator<T> implements Operator<T> {
 
     @Override
     public void execute() {
+        System.out.println("SourceOperator starting execution...");
         if (isKafkaMode) {
             executeKafkaMode();
         } else {
             executeMockMode();
         }
+        System.out.println("SourceOperator finished execution.");
     }
 
     private void executeKafkaMode() {

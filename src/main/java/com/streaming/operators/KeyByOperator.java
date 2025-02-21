@@ -17,32 +17,31 @@ public class KeyByOperator<T> implements Operator<T> {
 
     @Override
     public void execute() {
+        System.out.println("KeyByOperator starting execution...");
         Map<Object, List<T>> partitions = new HashMap<>();
 
-        // Partition data by key
         while (true) {
-            T data = DataStream.getLatestData();
+            Object data = DataStream.getLatestData();
             if (data == null) {
-                System.out.println("No more data to process in KeyByOperator.");
+                System.out.println("KeyByOperator: No more data to process.");
                 break;
             }
 
-            Object key = keySelector.getKey(data);
+            Object key = keySelector.getKey((T) data);
             if (key == null) {
                 System.err.println("KeySelector returned null for data: " + data);
-                continue; // Skip this data if key is null
+                continue;
             }
 
             System.out.println("KeyByOperator processing data: " + data + " with key: " + key);
-            partitions.computeIfAbsent(key, k -> new ArrayList<>()).add(data);
+            partitions.computeIfAbsent(key, k -> new ArrayList<>()).add((T) data);
         }
 
-        // Pass partitions to the next operator
         for (Map.Entry<Object, List<T>> entry : partitions.entrySet()) {
             System.out.println("KeyByOperator output: " + entry.getKey() + " -> " + entry.getValue());
-            // Ensure downstream operators can handle List<T> as input
             DataStream.addDataToBuffer(entry.getValue());
         }
+        System.out.println("KeyByOperator finished execution.");
     }
 
     @Override

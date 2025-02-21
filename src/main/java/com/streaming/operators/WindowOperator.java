@@ -23,9 +23,9 @@ public class WindowOperator<T> implements Operator<T> {
             long currentTime = System.currentTimeMillis();
             if (currentTime - lastTriggerTime >= windowSize) {
                 if (!windowedData.isEmpty()) {
-                    for (List<T> data : windowedData.values()) {
-                        System.out.println("WindowOperator output: " + data);
-                        DataStream.addDataToBuffer(data);
+                    for (Map.Entry<Object, List<T>> entry : windowedData.entrySet()) {
+                        System.out.println("WindowOperator output: " + entry.getKey() + " -> " + entry.getValue());
+                        DataStream.addDataToBuffer(entry.getValue());
                     }
                     windowedData.clear();
                 }
@@ -35,6 +35,14 @@ public class WindowOperator<T> implements Operator<T> {
             T data = (T) DataStream.getLatestData();
             if (data == null) {
                 System.out.println("No more data to process in WindowOperator.");
+                // Trigger a final window if there is any remaining data
+                if (!windowedData.isEmpty()) {
+                    for (Map.Entry<Object, List<T>> entry : windowedData.entrySet()) {
+                        System.out.println("WindowOperator output: " + entry.getKey() + " -> " + entry.getValue());
+                        DataStream.addDataToBuffer(entry.getValue());
+                    }
+                    windowedData.clear();
+                }
                 break;
             }
 

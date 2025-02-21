@@ -4,7 +4,10 @@ import com.streaming.operators.Operator;
 import com.streaming.operators.SinkOperator;
 import com.streaming.operators.SourceOperator;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class DataStream<T> {
@@ -23,12 +26,13 @@ public class DataStream<T> {
         }
         dag.addNode(operator);
         lastOperator = operator;
-        return new DataStream<>(); // 返回一个新的 DataStream<R> 对象
+        return new DataStream<>();
     }
 
     public void execute() {
         List<Operator<T>> sortedOperators = topologicalSort(dag);
         for (Operator<T> operator : sortedOperators) {
+            System.out.println("Executing Operator: " + operator.getClass().getSimpleName());
             try {
                 operator.execute();
             } catch (Exception e) {
@@ -46,6 +50,7 @@ public class DataStream<T> {
                 visit(node, visited, sorted, dag);
             }
         }
+        System.out.println("Topological Order: " + sorted);
         return sorted;
     }
 
@@ -77,11 +82,8 @@ public class DataStream<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public static <R> R getLatestData() {
+    public static Object getLatestData() {
         Object data = dataBuffer.poll();
-        if (data == null) {
-            return null;
-        }
-        return (R) data;
+        return data;
     }
 }

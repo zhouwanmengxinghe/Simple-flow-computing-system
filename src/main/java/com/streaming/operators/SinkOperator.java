@@ -1,8 +1,6 @@
 package com.streaming.operators;
 
 import com.streaming.DataStream;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -18,26 +16,27 @@ public class SinkOperator<T> implements Operator<T> {
 
     @Override
     public void execute() {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(path));
-             CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT.withHeader("word", "count"))) {
+        System.out.println("SinkOperator starting execution...");
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(path))) {
             while (true) {
-                T data = DataStream.getLatestData();
+                Object data = DataStream.getLatestData();
                 if (data == null) {
-                    System.out.println("No more data to process in SinkOperator.");
+                    System.out.println("SinkOperator: No more data to process.");
                     break;
                 }
 
                 if (!(data instanceof String[])) {
                     System.err.println("Expected String[] but got: " + data.getClass());
-                    continue; // Skip this data if type mismatch
+                    continue;
                 }
 
                 String[] record = (String[]) data;
                 System.out.println("SinkOperator output: " + Arrays.toString(record));
-                csvPrinter.printRecord(record[0], record[1]);
+                writer.write(record[0] + "," + record[1]);
+                writer.newLine();
             }
-            csvPrinter.flush();
-            System.out.println("SinkOperator completed.");
+            writer.flush();
+            System.out.println("SinkOperator finished execution.");
         } catch (IOException e) {
             System.err.println("Error writing to file: " + path);
             e.printStackTrace();

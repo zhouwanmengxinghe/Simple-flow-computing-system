@@ -14,10 +14,11 @@ public class ReduceOperator<T> implements Operator<T> {
 
     @Override
     public void execute() {
+        System.out.println("ReduceOperator starting execution...");
         while (true) {
             Object data = DataStream.getLatestData();
             if (data == null) {
-                System.out.println("No more data to process in ReduceOperator.");
+                System.out.println("ReduceOperator: No more data to process.");
                 break;
             }
 
@@ -33,7 +34,7 @@ public class ReduceOperator<T> implements Operator<T> {
                 T result = partition.stream().reduce(reduceFunction).orElse(null);
                 if (result == null) {
                     System.err.println("ReduceFunction returned null for partition: " + partition);
-                    continue; // Skip this partition if result is null
+                    continue;
                 }
 
                 System.out.println("ReduceOperator output: " + result);
@@ -41,9 +42,10 @@ public class ReduceOperator<T> implements Operator<T> {
             } catch (Exception e) {
                 System.err.println("Error processing partition in ReduceOperator: " + partition);
                 e.printStackTrace();
-                continue; // Skip this partition if an error occurs
+                continue;
             }
         }
+        System.out.println("ReduceOperator finished execution.");
     }
 
     @Override
