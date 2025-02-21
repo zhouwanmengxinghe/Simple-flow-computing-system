@@ -11,24 +11,30 @@ public class DataStream<T> {
     private DAG<T> dag;
     private Operator<T> lastOperator;
     private static final ConcurrentLinkedQueue<Object> dataBuffer = new ConcurrentLinkedQueue<>();
+
     public DataStream() {
         dag = new DAG<>();
         lastOperator = null;
     }
 
-    public DataStream<T> addOperator(Operator<T> operator) {
+    public <R> DataStream<R> addOperator(Operator<T> operator) {
         if (lastOperator != null) {
             dag.addEdge(lastOperator, operator);
         }
         dag.addNode(operator);
         lastOperator = operator;
-        return this;
+        return new DataStream<>(); // 返回一个新的 DataStream<R> 对象
     }
 
     public void execute() {
         List<Operator<T>> sortedOperators = topologicalSort(dag);
         for (Operator<T> operator : sortedOperators) {
-            operator.execute();
+            try {
+                operator.execute();
+            } catch (Exception e) {
+                System.err.println("Error executing operator: " + operator.getClass().getName());
+                e.printStackTrace();
+            }
         }
     }
 
@@ -53,9 +59,9 @@ public class DataStream<T> {
         sorted.add(node);
     }
 
-    public static <T> DataStream<T> fromKafka(String topic) {
+    public static <T> DataStream<T> fromKafka(String topic, List<String> mockData) {
         DataStream<T> stream = new DataStream<>();
-        SourceOperator<T> sourceOperator = new SourceOperator<>(topic);
+        SourceOperator<T> sourceOperator = new SourceOperator<>((List<String>) mockData);
         stream.addOperator(sourceOperator);
         return stream;
     }
@@ -65,14 +71,17 @@ public class DataStream<T> {
         addOperator(sinkOperator);
     }
 
-    // 添加数据到缓冲区
     public static void addDataToBuffer(Object data) {
+        System.out.println("Adding data to buffer: " + data);
         dataBuffer.add(data);
     }
 
-    // 从缓冲区获取最新数据
     @SuppressWarnings("unchecked")
     public static <R> R getLatestData() {
-        return (R) dataBuffer.poll(); // 从缓冲区中取出并移除最新的数据
+        Object data = dataBuffer.poll();
+        if (data == null) {
+            return null;
+        }
+        return (R) data;
     }
 }

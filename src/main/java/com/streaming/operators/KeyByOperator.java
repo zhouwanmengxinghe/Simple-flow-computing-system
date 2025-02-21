@@ -1,7 +1,7 @@
 package com.streaming.operators;
 
-import com.streaming.functions.KeySelector;
 import com.streaming.DataStream;
+import com.streaming.functions.KeySelector;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,17 +17,31 @@ public class KeyByOperator<T> implements Operator<T> {
 
     @Override
     public void execute() {
-        // Partition data by key
         Map<Object, List<T>> partitions = new HashMap<>();
+
+        // Partition data by key
         while (true) {
             T data = DataStream.getLatestData();
-            if (data == null) break;
+            if (data == null) {
+                System.out.println("No more data to process in KeyByOperator.");
+                break;
+            }
+
             Object key = keySelector.getKey(data);
+            if (key == null) {
+                System.err.println("KeySelector returned null for data: " + data);
+                continue; // Skip this data if key is null
+            }
+
+            System.out.println("KeyByOperator processing data: " + data + " with key: " + key);
             partitions.computeIfAbsent(key, k -> new ArrayList<>()).add(data);
         }
+
         // Pass partitions to the next operator
-        for (List<T> partition : partitions.values()) {
-            DataStream.addDataToBuffer(partition);
+        for (Map.Entry<Object, List<T>> entry : partitions.entrySet()) {
+            System.out.println("KeyByOperator output: " + entry.getKey() + " -> " + entry.getValue());
+            // Ensure downstream operators can handle List<T> as input
+            DataStream.addDataToBuffer(entry.getValue());
         }
     }
 

@@ -7,17 +7,36 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 
 public class SourceOperator<T> implements Operator<T> {
-    private String topic;
+    private final boolean isKafkaMode;
+    private final String topic;
+    private final List<String> mockData;
 
     public SourceOperator(String topic) {
+        this.isKafkaMode = true;
         this.topic = topic;
+        this.mockData = null;
+    }
+
+    public SourceOperator(List<String> mockData) {
+        this.isKafkaMode = false;
+        this.topic = null;
+        this.mockData = mockData;
     }
 
     @Override
     public void execute() {
+        if (isKafkaMode) {
+            executeKafkaMode();
+        } else {
+            executeMockMode();
+        }
+    }
+
+    private void executeKafkaMode() {
         Properties props = new Properties();
         props.put("bootstrap.servers", "localhost:9092");
         props.put("group.id", "test-group");
@@ -31,11 +50,30 @@ public class SourceOperator<T> implements Operator<T> {
             while (true) {
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
                 for (ConsumerRecord<String, String> record : records) {
-                    DataStream.addDataToBuffer(record.value());
+                    String value = record.value();
+                    if (value != null) {
+                        System.out.println("SourceOperator output: " + value);
+                        DataStream.addDataToBuffer(value);
+                    }
                 }
             }
+        } catch (Exception e) {
+            System.err.println("Error reading from Kafka topic: " + topic);
+            e.printStackTrace();
         } finally {
             consumer.close();
+        }
+    }
+
+    private void executeMockMode() {
+        if (mockData == null || mockData.isEmpty()) {
+            System.err.println("Mock data is empty or null.");
+            return;
+        }
+
+        for (String data : mockData) {
+            System.out.println("SourceOperator output: " + data);
+            DataStream.addDataToBuffer(data);
         }
     }
 
