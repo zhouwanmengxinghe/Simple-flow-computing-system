@@ -7,45 +7,31 @@ import com.streaming.operators.KeyByOperator;
 import com.streaming.operators.MapOperator;
 import com.streaming.operators.ReduceOperator;
 
-import java.util.Arrays;
-import java.util.List;
-
 public class WordCountApplication {
     public static void main(String[] args) {
-        List<String> mockData = Arrays.asList(
-                "Apple,1",
-                "Banana,1",
-                "apple,1",
-                "banana,1",
-                "Apple,1",
-                "Cherry,1"
-        );
+        // 从 Kafka 读取数据
+        DataStream<String> source = DataStream.fromKafka1("wordcount-topic");
 
-        DataStream<String> source = DataStream.fromKafka("wordcount-topic", mockData);
-
-        DataStream<String[]> mapStream = source.addOperator(new MapOperator<>((value) -> {
-            String[] parts = ((String) value).split(",");
-            if (parts.length < 2) {
-                return new String[]{"", "0"};
-            }
+        // 提取单词并转换为小写
+        DataStream<String[]> mapStream = source.addOperator(new MapOperator<>(value -> {
+            String[] parts = value.split(",");
             return new String[]{parts[0].toLowerCase(), parts[1]};
         }));
 
-        DataStream<String[]> keyByStream = mapStream.addOperator(new KeyByOperator<>((value) -> {
-            if (value.length < 2) {
-                return "";
-            }
-            return value[0];
-        }));
+        // 按单词分组
+        DataStream<String[]> keyByStream = mapStream.addOperator(new KeyByOperator<>(value -> value[0]));
 
+        // 累加单词计数
         DataStream<String[]> reduceStream = keyByStream.addOperator(new ReduceOperator<>((value1, value2) -> {
             int count1 = Integer.parseInt(value1[1]);
             int count2 = Integer.parseInt(value2[1]);
             return new String[]{value1[0], String.valueOf(count1 + count2)};
         }));
 
+        // 输出结果到文件
         reduceStream.writeAsText("output.csv");
 
+        // 执行DAG
         source.execute();
     }
 }

@@ -70,7 +70,12 @@ public class DataStream<T> {
         stream.addOperator(sourceOperator);
         return stream;
     }
-
+    public static <T> DataStream<T> fromKafka1(String topic) {
+        DataStream<T> stream = new DataStream<>();
+        SourceOperator<T> sourceOperator = new SourceOperator<>(topic);
+        stream.addOperator(sourceOperator);
+        return stream;
+    }
     public void writeAsText(String path) {
         SinkOperator<T> sinkOperator = new SinkOperator<>(path);
         addOperator(sinkOperator);
