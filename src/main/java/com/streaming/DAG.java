@@ -19,6 +19,10 @@ public class DAG<T> {
         adjacencyList.get(from).add(to);
     }
 
+    public Set<Operator<T>> getNodes() {
+        return adjacencyList.keySet();
+    }
+
     public Map<Operator<T>, List<Operator<T>>> getAdjacencyList() {
         return adjacencyList;
     }
