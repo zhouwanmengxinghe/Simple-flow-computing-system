@@ -36,8 +36,8 @@ public class DataStream<T> {
             try {
                 operator.execute();
             } catch (Exception e) {
-                System.err.println("Error executing operator: " + operator.getClass().getName());
-                e.printStackTrace();
+                throw new RuntimeException(
+                    "Error executing operator: " + operator.getClass().getName(), e);
             }
         }
     }
@@ -45,10 +45,14 @@ public class DataStream<T> {
     private List<Operator<T>> topologicalSort(DAG<T> dag) {
         List<Operator<T>> sorted = new ArrayList<>();
         Set<Operator<T>> visited = new HashSet<>();
-        for (Operator<T> node : dag.getAdjacencyList().keySet()) {
-            if (!visited.contains(node)) {
-                visit(node, visited, sorted, dag);
+        try {
+            for (Operator<T> node : dag.getAdjacencyList().keySet()) {
+                if (!visited.contains(node)) {
+                    visit(node, visited, sorted, dag);
+                }
             }
+        } catch (Exception e) {
+            throw new RuntimeException("Error during topological sort: " + e.getMessage(), e);
         }
         System.out.println("Topological Order: " + sorted);
         return sorted;
@@ -71,14 +75,25 @@ public class DataStream<T> {
         return stream;
     }
     public static <T> DataStream<T> fromKafka1(String topic) {
-        DataStream<T> stream = new DataStream<>();
-        SourceOperator<T> sourceOperator = new SourceOperator<>(topic);
-        stream.addOperator(sourceOperator);
-        return stream;
+        try {
+            DataStream<T> stream = new DataStream<>();
+            SourceOperator<T> sourceOperator = new SourceOperator<>(topic);
+            stream.addOperator(sourceOperator);
+            return stream;
+        } catch (Exception e) {
+            throw new RuntimeException(
+                "Error creating Kafka source for topic: " + topic, e);
+        }
     }
+
     public void writeAsText(String path) {
-        SinkOperator<T> sinkOperator = new SinkOperator<>(path);
-        addOperator(sinkOperator);
+        try {
+            SinkOperator<T> sinkOperator = new SinkOperator<>(path);
+            addOperator(sinkOperator);
+        } catch (Exception e) {
+            throw new RuntimeException(
+                "Error creating sink operator for path: " + path, e);
+        }
     }
 
     public static void addDataToBuffer(Object data) {
